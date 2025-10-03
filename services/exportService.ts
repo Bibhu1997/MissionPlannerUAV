@@ -1,3 +1,4 @@
+
 import { Mission, Waypoint, WeatherData } from '../types';
 
 // Add global declarations for jsPDF and its autoTable plugin to satisfy TypeScript
@@ -8,8 +9,13 @@ declare global {
       jsPDF: new (options?: any) => jsPDF;
     };
   }
+  // FIX: Added missing method signatures to the jsPDF interface to resolve type errors.
   interface jsPDF {
     autoTable: (options: any) => jsPDF;
+    setFontSize(size: number): jsPDF;
+    text(text: string | string[], x: number, y: number, options?: any): jsPDF;
+    setTextColor(r: number | string, g?: number, b?: number): jsPDF;
+    save(filename: string): void;
   }
 }
 
@@ -26,31 +32,56 @@ const triggerDownload = (filename: string, content: string, mimeType: string) =>
 };
 
 export const exportToGeoJSON = (mission: Mission) => {
+  const features: any[] = [];
+
+  // Mission Path
+  if (mission.waypoints.length > 1) {
+    features.push({
+      type: 'Feature',
+      properties: { name: `${mission.name} - Path` },
+      geometry: {
+        type: 'LineString',
+        coordinates: mission.waypoints.map(wp => [wp.lng, wp.lat, wp.alt]),
+      },
+    });
+  }
+
+  // Waypoints
+  mission.waypoints.forEach((wp, index) => {
+    features.push({
+      type: 'Feature',
+      properties: { name: `WP ${index + 1}`, altitude: wp.alt, speed: wp.speed },
+      geometry: { type: 'Point', coordinates: [wp.lng, wp.lat, wp.alt] },
+    });
+  });
+
+  // Home Position
+  if (mission.homePosition) {
+    features.push({
+      type: 'Feature',
+      properties: { name: 'Home Position' },
+      geometry: { type: 'Point', coordinates: [mission.homePosition.lng, mission.homePosition.lat] },
+    });
+  }
+
+  // Boundary
+  if (mission.boundary && mission.boundary.length > 2) {
+    const boundaryCoords = mission.boundary.map(p => [p.lng, p.lat]);
+    if (boundaryCoords.length > 0 && (boundaryCoords[0][0] !== boundaryCoords[boundaryCoords.length - 1][0] || boundaryCoords[0][1] !== boundaryCoords[boundaryCoords.length - 1][1])) {
+      boundaryCoords.push(boundaryCoords[0]); // Close the polygon for GeoJSON
+    }
+    features.push({
+      type: 'Feature',
+      properties: { name: 'Mission Boundary' },
+      geometry: { type: 'Polygon', coordinates: [boundaryCoords] },
+    });
+  }
+
   const geojson = {
     type: 'FeatureCollection',
-    features: [
-      {
-        type: 'Feature',
-        properties: { name: `${mission.name} - Path` },
-        geometry: {
-          type: 'LineString',
-          coordinates: mission.waypoints.map(wp => [wp.lng, wp.lat, wp.alt]),
-        },
-      },
-      ...mission.waypoints.map((wp, index) => ({
-        type: 'Feature',
-        properties: {
-          name: `WP ${index + 1}`,
-          altitude: wp.alt,
-          speed: wp.speed,
-        },
-        geometry: {
-          type: 'Point',
-          coordinates: [wp.lng, wp.lat, wp.alt],
-        },
-      })),
-    ],
+    features: features,
   };
+
   triggerDownload(`${mission.name}.geojson`, JSON.stringify(geojson, null, 2), 'application/geo+json');
 };
 
@@ -60,17 +91,28 @@ export const exportToKML = (mission: Mission) => {
   <Document>
     <name>${mission.name}</name>
     <Style id="waypoint">
-      <IconStyle>
-        <Icon>
-          <href>http://maps.google.com/mapfiles/kml/paddle/wht-blank.png</href>
-        </Icon>
-      </IconStyle>
+      <IconStyle><Icon><href>http://maps.google.com/mapfiles/kml/paddle/wht-blank.png</href></Icon></IconStyle>
     </Style>
+    <Style id="homeStyle">
+      <IconStyle><Icon><href>http://maps.google.com/mapfiles/kml/paddle/grn-circle.png</href></Icon></IconStyle>
+    </Style>
+    <Style id="boundaryStyle">
+      <LineStyle><color>ffb672f4</color><width>2</width></LineStyle>
+      <PolyStyle><color>33b672f4</color></PolyStyle>
+    </Style>
+    
+    ${mission.homePosition ? `
+    <Placemark>
+      <name>Home Position</name>
+      <styleUrl>#homeStyle</styleUrl>
+      <Point>
+        <coordinates>${mission.homePosition.lng},${mission.homePosition.lat},0</coordinates>
+      </Point>
+    </Placemark>` : ''}
+    
     <Placemark>
       <name>Mission Path</name>
-      <styleUrl>#lineStyle</styleUrl>
       <LineString>
-        <extrude>1</extrude>
         <tessellate>1</tessellate>
         <altitudeMode>absolute</altitudeMode>
         <coordinates>
@@ -78,6 +120,7 @@ export const exportToKML = (mission: Mission) => {
         </coordinates>
       </LineString>
     </Placemark>
+    
     ${mission.waypoints.map((wp, index) => `
     <Placemark>
       <name>WP ${index + 1}</name>
@@ -87,23 +130,48 @@ export const exportToKML = (mission: Mission) => {
         <coordinates>${wp.lng},${wp.lat},${wp.alt}</coordinates>
       </Point>
     </Placemark>`).join('')}
+    
+    ${(mission.boundary && mission.boundary.length > 2) ? `
+    <Placemark>
+      <name>Mission Boundary</name>
+      <styleUrl>#boundaryStyle</styleUrl>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              ${mission.boundary.map(p => `${p.lng},${p.lat},0`).join('\n              ')}
+              ${mission.boundary.length > 0 ? `${mission.boundary[0].lng},${mission.boundary[0].lat},0` : ''}
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>` : ''}
   </Document>
 </kml>`;
   triggerDownload(`${mission.name}.kml`, kmlContent, 'application/vnd.google-earth.kml+xml');
 };
 
 export const exportToCSV = (mission: Mission) => {
+  let csvContent = `# Mission: ${mission.name}\n`;
+  if (mission.homePosition) {
+    csvContent += `# Home Position: lat=${mission.homePosition.lat}, lon=${mission.homePosition.lng}\n`;
+  }
+  if (mission.boundary && mission.boundary.length > 0) {
+    const boundaryStr = mission.boundary.map(p => `(${p.lat.toFixed(6)},${p.lng.toFixed(6)})`).join('; ');
+    csvContent += `# Mission Boundary: ${boundaryStr}\n`;
+  }
+
   const headers = 'waypoint,latitude,longitude,altitude_m,speed_m/s';
   const rows = mission.waypoints.map((wp, index) =>
-    `${index + 1},${wp.lat},${wp.lng},${wp.alt},${wp.speed}`
+    `${index + 1},${wp.lat.toFixed(6)},${wp.lng.toFixed(6)},${wp.alt},${wp.speed}`
   );
-  const csvContent = `${headers}\n${rows.join('\n')}`;
+  csvContent += `${headers}\n${rows.join('\n')}`;
   triggerDownload(`${mission.name}.csv`, csvContent, 'text/csv');
 };
 
 export const exportToMAVLink = (mission: Mission) => {
     const mavlinkContent = `QGC WPL 110\n` + mission.waypoints.map((wp, index) => {
-        const command = index === 0 ? 16 : 16; // MAV_CMD_NAV_WAYPOINT
+        const command = 16; // MAV_CMD_NAV_WAYPOINT
         return `${index}\t0\t3\t${command}\t0\t${wp.speed}\t0\t0\t${wp.lat}\t${wp.lng}\t${wp.alt}\t1`;
     }).join('\n');
     triggerDownload(`${mission.name}.txt`, mavlinkContent, 'text/plain');
@@ -129,12 +197,13 @@ const getDistance = (from: { lat: number, lng: number }, to: { lat: number, lng:
 };
 
 export const exportToPDF = (mission: Mission, weather: WeatherData) => {
-    if (typeof window.jspdf === 'undefined' || typeof (window as any).jspdf.jsPDF.autoTable === 'undefined') {
+    // Correctly check if the jspdf library and autotable plugin are loaded.
+    if (typeof window.jspdf?.jsPDF?.prototype?.autoTable === 'undefined') {
         alert("PDF generation libraries are not loaded. Please check your internet connection and try again.");
         return;
     }
     
-    const doc = new (window as any).jspdf.jsPDF();
+    const doc = new window.jspdf.jsPDF();
 
     // --- Mission Statistics ---
     let totalDistance = 0;
@@ -186,21 +255,34 @@ export const exportToPDF = (mission: Mission, weather: WeatherData) => {
         columnStyles: { 0: { fontStyle: 'bold' } },
     });
 
+    let lastTableY = (doc as any).lastAutoTable.finalY;
+
+    // --- Mission Boundary ---
+    if (mission.boundary && mission.boundary.length > 0) {
+        doc.text('Mission Boundary', 14, lastTableY + 10);
+        doc.autoTable({
+            startY: lastTableY + 12,
+            head: [['#', 'Latitude', 'Longitude']],
+            body: mission.boundary.map((p, i) => [i + 1, p.lat.toFixed(6), p.lng.toFixed(6)]),
+            theme: 'grid',
+            headStyles: { fillColor: [30, 41, 59] },
+        });
+        lastTableY = (doc as any).lastAutoTable.finalY;
+    }
 
     // --- Weather Overview ---
-    const weatherTableStartY = (doc as any).lastAutoTable.finalY + 10;
-    doc.text('Weather Overview', 14, weatherTableStartY);
+    doc.text('Weather Overview', 14, lastTableY + 10);
     doc.autoTable({
-        startY: weatherTableStartY + 2,
+        startY: lastTableY + 12,
         theme: 'grid',
         head: [['METAR', 'TAF']],
         body: [[weather.metar, weather.taf]],
         styles: { fontSize: 8, font: 'courier' }
     });
+    lastTableY = (doc as any).lastAutoTable.finalY;
 
     // --- Waypoint Table ---
-    const waypointTableStartY = (doc as any).lastAutoTable.finalY + 10;
-    doc.text('Waypoint Details', 14, waypointTableStartY);
+    doc.text('Waypoint Details', 14, lastTableY + 10);
     const waypointData = mission.waypoints.map((wp, i) => [
         i + 1,
         wp.lat.toFixed(6),
@@ -210,7 +292,7 @@ export const exportToPDF = (mission: Mission, weather: WeatherData) => {
     ]);
 
     doc.autoTable({
-        startY: waypointTableStartY + 2,
+        startY: lastTableY + 12,
         head: [['#', 'Latitude', 'Longitude', 'Altitude', 'Speed']],
         body: waypointData,
     });

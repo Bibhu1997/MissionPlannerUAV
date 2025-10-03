@@ -52,6 +52,7 @@ interface SimulationState {
 interface TelemetryState {
   telemetry: Telemetry | null;
   isSimulating: boolean;
+  alert: string | null;
   startSimulation: () => void;
   stopSimulation: () => void;
 }
@@ -62,6 +63,7 @@ export const TelemetryProvider: React.FC<{ children: ReactNode }> = ({ children 
   const { currentMission } = useMissionState();
   const [telemetry, setTelemetry] = useState<Telemetry | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [alert, setAlert] = useState<string | null>(null);
   
   const simulationRef = useRef<SimulationState | null>(null);
 
@@ -71,6 +73,7 @@ export const TelemetryProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
     setIsSimulating(false);
     setTelemetry(null);
+    setAlert(null);
     simulationRef.current = null;
   };
 
@@ -151,7 +154,6 @@ export const TelemetryProvider: React.FC<{ children: ReactNode }> = ({ children 
             }
         }
         
-        // Recalculate 'from' and 'to' in case we moved to the next segment
         const currentFromWp = waypoints[sim.currentWaypointIndex];
         const currentToWp = waypoints[sim.currentWaypointIndex + 1];
         const currentSegmentDistance = getDistance(currentFromWp, currentToWp);
@@ -159,17 +161,23 @@ export const TelemetryProvider: React.FC<{ children: ReactNode }> = ({ children 
         const fraction = currentSegmentDistance > 0 ? sim.progress / currentSegmentDistance : 1;
         const currentPosition = interpolate(currentFromWp, currentToWp, fraction);
         const heading = getBearing(currentFromWp, currentToWp);
-
-        // --- New Realistic Degradation ---
-        // Battery drains by 80% over the total mission time
+        
         const battery = Math.max(0, 100 - (sim.elapsedTime / sim.totalMissionTime) * 80);
-
-        // Signal degrades with distance from home, with noise. Max range 5km.
         const distanceFromHome = getDistance(currentPosition, sim.homePosition);
         const maxRange = 5000; // 5km
         const baseSignal = Math.max(0, 100 - (distanceFromHome / maxRange) * 100);
-        const signal = Math.max(0, baseSignal - (Math.random() * 5)); // Add noise
+        const signal = Math.max(0, baseSignal - (Math.random() * 5));
         
+        // Altitude Safety Check
+        let currentAlert: string | null = null;
+        const alt = currentPosition.alt;
+        if (alt < 20) {
+            currentAlert = `CRITICAL: Altitude below 20m safety floor!`;
+        } else if (alt > 120) {
+            currentAlert = `WARNING: Altitude above 120m ceiling!`;
+        }
+        setAlert(currentAlert);
+
         setTelemetry({
             lat: currentPosition.lat,
             lng: currentPosition.lng,
@@ -194,7 +202,7 @@ export const TelemetryProvider: React.FC<{ children: ReactNode }> = ({ children 
 
 
   return (
-    <TelemetryContext.Provider value={{ telemetry, isSimulating, startSimulation, stopSimulation }}>
+    <TelemetryContext.Provider value={{ telemetry, isSimulating, alert, startSimulation, stopSimulation }}>
       {children}
     </TelemetryContext.Provider>
   );

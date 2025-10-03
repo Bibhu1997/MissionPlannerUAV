@@ -22,19 +22,3 @@ export const SIDEBAR_PANELS: ActivePanel[] = [
   ActivePanel.WEATHER,
   ActivePanel.SETTINGS
 ];
-
-// FIX: Added missing PREFLIGHT_CHECKLIST_ITEMS constant.
-export const PREFLIGHT_CHECKLIST_ITEMS: string[] = [
-  'Weather conditions checked and suitable',
-  'UAV frame and propellers inspected for damage',
-  'All batteries (UAV, controller, payload) fully charged',
-  'Payload (camera, etc.) securely mounted and functional',
-  'Memory card has sufficient space and is formatted',
-  'Controller antennas positioned correctly',
-  'GPS lock acquired (sufficient satellites)',
-  'Compass calibrated, if required by location change',
-  'Home point set and verified on map',
-  'Flight plan uploaded and verified',
-  'Clear takeoff and landing zones established',
-  'Airspace checked for restrictions (NOTAMs, TFRs)',
-];
