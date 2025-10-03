@@ -2,7 +2,8 @@
 
 **Satellite MissionPlanner** is a modern, map-centric web application for planning, visualizing, and managing Unmanned Aerial Vehicle (UAV) missions. It integrates live weather data, realistic telemetry simulation, and a suite of professional planning tools into an intuitive, responsive interface powered by Google Maps.
 
-![Satellite MissionPlanner Screenshot](https://storage.googleapis.com/aai-web-samples/apps/mission-planner.png)
+View a live version here:
+https://satellite-missionplanner-804375816371.us-west1.run.app/
 
 ---
 
