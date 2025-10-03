@@ -1,9 +1,11 @@
+
 import React, { useState } from 'react';
 import { ActivePanel } from '../types';
 import MissionEditorPanel from './panels/MissionEditorPanel';
 import MissionLibraryPanel from './panels/MissionLibraryPanel';
 import WeatherPanel from './panels/WeatherPanel';
 import ChecklistPanel from './panels/ChecklistPanel';
+import SettingsPanel from './panels/SettingsPanel';
 import { SIDEBAR_PANELS } from '../constants';
 
 const PanelIcon: React.FC<{ panel: ActivePanel }> = ({ panel }) => {
@@ -13,6 +15,7 @@ const PanelIcon: React.FC<{ panel: ActivePanel }> = ({ panel }) => {
         [ActivePanel.LIBRARY]: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
         [ActivePanel.WEATHER]: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><path d="M22 10a3 3 0 0 0-3-3h-2.207a5.502 5.502 0 0 0-10.702.5"/></svg>,
         [ActivePanel.CHECKLIST]: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M15 6.5A3.5 3.5 0 0 0 8.5 3c-2.5 0-4.5 2-4.5 4.5A3.5 3.5 0 0 0 8.5 11c1.14 0 2.15-.53 2.84-1.36"/><path d="M14.5 9.5A3.5 3.5 0 0 0 21 6c0-2.5-2-4.5-4.5-4.5A3.5 3.5 0 0 0 12 6.5"/><path d="M2 21h14"/><path d="m16 21-1-3-3 1 2-4-4-1 3-4-1-4 4 1 1-4 1 4 4-1-1 4 3 4-4 1 2 4-3-1z"/></svg>,
+        [ActivePanel.SETTINGS]: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2.73l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1 0-2.73l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
     }
     return icons[panel];
 }
@@ -30,6 +33,8 @@ const Sidebar: React.FC = () => {
                 return <WeatherPanel />;
             case ActivePanel.CHECKLIST:
                 return <ChecklistPanel />;
+            case ActivePanel.SETTINGS:
+                return <SettingsPanel />;
             default:
                 return null;
         }

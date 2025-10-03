@@ -24,20 +24,27 @@ export interface Telemetry {
   signal: number;
 }
 
+export interface ForecastDetail {
+  day: string;
+  temp_min: number;
+  temp_max: number;
+  humidity: number;
+  precipitation: number; // Probability
+  weather_icon: string;
+  weather_main: string;
+}
+
 export interface WeatherData {
   metar: string;
   taf: string;
-  forecast: {
-    time: string;
-    temperature: number;
-    windSpeed: number;
-    windDirection: number;
-  }[];
+  forecast: ForecastDetail[];
 }
+
 
 export enum ActivePanel {
   EDITOR = 'Mission Editor',
   LIBRARY = 'Mission Library',
   WEATHER = 'Weather',
   CHECKLIST = 'Checklist',
+  SETTINGS = 'Settings',
 }

@@ -5,22 +5,28 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import MapCanvas from './components/MapCanvas';
 import { TelemetryProvider } from './hooks/useTelemetry';
+import { SettingsProvider } from './hooks/useSettings';
+import { WeatherProvider } from './hooks/useWeather';
 
 const App: React.FC = () => {
   return (
-    <MissionProvider>
-      <TelemetryProvider>
-        <div className="flex flex-col h-screen w-screen overflow-hidden bg-base-100 text-slate-300">
-          <Header />
-          <div className="flex flex-1 overflow-hidden">
-            <main className="flex-1 relative">
-              <MapCanvas />
-            </main>
-            <Sidebar />
-          </div>
-        </div>
-      </TelemetryProvider>
-    </MissionProvider>
+    <SettingsProvider>
+      <WeatherProvider>
+        <MissionProvider>
+          <TelemetryProvider>
+            <div className="flex flex-col h-screen w-screen overflow-hidden bg-base-100 text-slate-300">
+              <Header />
+              <div className="flex flex-1 overflow-hidden">
+                <main className="flex-1 relative">
+                  <MapCanvas />
+                </main>
+                <Sidebar />
+              </div>
+            </div>
+          </TelemetryProvider>
+        </MissionProvider>
+      </WeatherProvider>
+    </SettingsProvider>
   );
 };
 

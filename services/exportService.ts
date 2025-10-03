@@ -1,5 +1,17 @@
+import { Mission, Waypoint, WeatherData } from '../types';
 
-import { Mission, Waypoint } from '../types';
+// Add global declarations for jsPDF and its autoTable plugin to satisfy TypeScript
+// when using the libraries loaded from the CDN.
+declare global {
+  interface Window {
+    jspdf: {
+      jsPDF: new (options?: any) => jsPDF;
+    };
+  }
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+  }
+}
 
 const triggerDownload = (filename: string, content: string, mimeType: string) => {
   const blob = new Blob([content], { type: mimeType });
@@ -90,8 +102,6 @@ export const exportToCSV = (mission: Mission) => {
 };
 
 export const exportToMAVLink = (mission: Mission) => {
-    // This is a simplified MAVLink (plain text) representation.
-    // Real MAVLink is a binary protocol.
     const mavlinkContent = `QGC WPL 110\n` + mission.waypoints.map((wp, index) => {
         const command = index === 0 ? 16 : 16; // MAV_CMD_NAV_WAYPOINT
         return `${index}\t0\t3\t${command}\t0\t${wp.speed}\t0\t0\t${wp.lat}\t${wp.lng}\t${wp.alt}\t1`;
@@ -100,6 +110,100 @@ export const exportToMAVLink = (mission: Mission) => {
     alert("MAVLink export is a simplified text representation. For real flights, use specialized software.");
 };
 
-export const exportToPDF = (mission: Mission) => {
-    alert("PDF export is a planned feature. For now, please use the other export formats.");
+// --- PDF Export Implementation ---
+const toRadians = (deg: number) => deg * Math.PI / 180;
+
+const getDistance = (from: { lat: number, lng: number }, to: { lat: number, lng: number }) => {
+    const R = 6371e3; // metres
+    const φ1 = toRadians(from.lat);
+    const φ2 = toRadians(to.lat);
+    const Δφ = toRadians(to.lat - from.lat);
+    const Δλ = toRadians(to.lng - from.lng);
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+};
+
+export const exportToPDF = (mission: Mission, weather: WeatherData) => {
+    if (typeof window.jspdf === 'undefined' || typeof (window as any).jspdf.jsPDF.autoTable === 'undefined') {
+        alert("PDF generation libraries are not loaded. Please check your internet connection and try again.");
+        return;
+    }
+    
+    const doc = new (window as any).jspdf.jsPDF();
+
+    // --- Mission Statistics ---
+    let totalDistance = 0;
+    let estimatedTime = 0;
+    for (let i = 0; i < mission.waypoints.length - 1; i++) {
+        const from = mission.waypoints[i];
+        const to = mission.waypoints[i+1];
+        const distance = getDistance(from, to);
+        totalDistance += distance;
+        if (from.speed > 0) {
+            estimatedTime += distance / from.speed;
+        }
+    }
+    const formatTime = (seconds: number) => {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.round(seconds % 60);
+        return `${h}h ${m}m ${s}s`;
+    }
+
+    // --- Document Header ---
+    doc.setFontSize(18);
+    doc.text('UAV Mission Brief', 14, 22);
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28);
+    
+    // --- Mission Summary ---
+    doc.setFontSize(12);
+    doc.text('Mission Summary', 14, 40);
+    doc.autoTable({
+        startY: 42,
+        theme: 'grid',
+        head: [['Mission Name', 'Waypoints', 'Total Distance', 'Est. Flight Time']],
+        body: [[
+            mission.name,
+            mission.waypoints.length,
+            `${(totalDistance / 1000).toFixed(2)} km`,
+            formatTime(estimatedTime)
+        ]]
+    });
+
+    // --- Weather Overview ---
+    const weatherTableStartY = (doc as any).lastAutoTable.finalY + 10;
+    doc.text('Weather Overview', 14, weatherTableStartY);
+    doc.autoTable({
+        startY: weatherTableStartY + 2,
+        theme: 'grid',
+        head: [['METAR', 'TAF']],
+        body: [[weather.metar, weather.taf]],
+        styles: { fontSize: 8, font: 'courier' }
+    });
+
+    // --- Waypoint Table ---
+    const waypointTableStartY = (doc as any).lastAutoTable.finalY + 10;
+    doc.text('Waypoint Details', 14, waypointTableStartY);
+    const waypointData = mission.waypoints.map((wp, i) => [
+        i + 1,
+        wp.lat.toFixed(6),
+        wp.lng.toFixed(6),
+        `${wp.alt.toFixed(1)} m`,
+        `${wp.speed.toFixed(1)} m/s`
+    ]);
+
+    doc.autoTable({
+        startY: waypointTableStartY + 2,
+        head: [['#', 'Latitude', 'Longitude', 'Altitude', 'Speed']],
+        body: waypointData,
+    });
+
+    doc.save(`${mission.name}_Brief.pdf`);
 };

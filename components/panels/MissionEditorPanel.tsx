@@ -61,7 +61,7 @@ const MissionEditorPanel: React.FC = () => {
 
     return (
         <div className="space-y-4">
-            <h3 className="text-lg font-bold text-slate-100">Mission Editor</h3>
+            <h3 className="text-lg font-bold text-slate-100">Mission Details</h3>
             <div>
                 <label className="block text-sm font-medium text-slate-400 mb-1">Mission Name</label>
                 <input 
@@ -76,7 +76,7 @@ const MissionEditorPanel: React.FC = () => {
                 <h4 className="font-semibold text-slate-200">Waypoints ({currentMission.waypoints.length})</h4>
                 <button
                     onClick={isSimulating ? stopSimulation : startSimulation}
-                    disabled={currentMission.waypoints.length === 0}
+                    disabled={currentMission.waypoints.length < 2}
                     className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors ${
                         isSimulating 
                         ? 'bg-red-500 hover:bg-red-600' 
@@ -87,7 +87,7 @@ const MissionEditorPanel: React.FC = () => {
                 </button>
             </div>
 
-            <div className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto pr-2">
+            <div className="space-y-3 max-h-[calc(100vh-250px)] overflow-y-auto pr-2">
                 {currentMission.waypoints.length > 0 ? (
                     currentMission.waypoints.map((wp, index) => (
                         <WaypointEditor key={wp.id} waypoint={wp} index={index} />
