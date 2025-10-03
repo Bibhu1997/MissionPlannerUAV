@@ -1,7 +1,7 @@
-
-import React, { createContext, useReducer, useContext, ReactNode, Dispatch } from 'react';
+import React, { createContext, useReducer, useContext, ReactNode, Dispatch, useEffect } from 'react';
 import { Mission, Waypoint } from '../types';
 import { DEFAULT_ALTITUDE, DEFAULT_SPEED } from '../constants';
+import { useSettings } from './useSettings';
 
 interface MissionState {
   currentMission: Mission;
@@ -19,14 +19,17 @@ type MissionAction =
   | { type: 'SAVE_MISSION' }
   | { type: 'DELETE_SAVED_MISSION'; payload: { id: string } }
   | { type: 'ADD_BOUNDARY_POINT'; payload: { lat: number; lng: number } }
-  | { type: 'CLEAR_BOUNDARY' };
+  | { type: 'CLEAR_BOUNDARY' }
+  | { type: 'SET_WAYPOINT_ALT_TYPE'; payload: { id: string; altType: 'MSL' | 'AGL' } }
+  | { type: 'SET_TERRAIN_PROFILE'; payload: { waypointsWithTerrain: Waypoint[]; terrainProfile: { elevation: number }[] } };
 
 const createNewMission = (): Mission => ({
   id: `mission_${Date.now()}`,
   name: 'New Mission',
   waypoints: [],
   boundary: [],
-  homePosition: { lat: 34.0522, lng: -118.2437 } // Default to LA for consistency
+  homePosition: { lat: 34.0522, lng: -118.2437 }, // Default to LA
+  terrainProfile: [],
 });
 
 const initialState: MissionState = {
@@ -43,6 +46,7 @@ const missionReducer = (state: MissionState, action: MissionAction): MissionStat
         lng: action.payload.lng,
         alt: DEFAULT_ALTITUDE,
         speed: DEFAULT_SPEED,
+        altType: 'MSL',
       };
       return {
         ...state,
@@ -75,32 +79,20 @@ const missionReducer = (state: MissionState, action: MissionAction): MissionStat
     case 'SET_MISSION_NAME': {
         return {
             ...state,
-            currentMission: {
-                ...state.currentMission,
-                name: action.payload
-            }
+            currentMission: { ...state.currentMission, name: action.payload }
         }
     }
     case 'SET_HOME_POSITION': {
         return {
             ...state,
-            currentMission: {
-                ...state.currentMission,
-                homePosition: action.payload
-            }
+            currentMission: { ...state.currentMission, homePosition: action.payload }
         }
     }
     case 'CREATE_NEW_MISSION': {
-        return {
-            ...state,
-            currentMission: createNewMission()
-        }
+        return { ...state, currentMission: createNewMission() }
     }
     case 'LOAD_MISSION': {
-        return {
-            ...state,
-            currentMission: action.payload
-        }
+        return { ...state, currentMission: action.payload }
     }
     case 'SAVE_MISSION': {
         const missionToSave = state.currentMission;
@@ -114,28 +106,39 @@ const missionReducer = (state: MissionState, action: MissionAction): MissionStat
         }
     }
     case 'DELETE_SAVED_MISSION': {
-        return {
-            ...state,
-            savedMissions: state.savedMissions.filter(m => m.id !== action.payload.id)
-        }
+        return { ...state, savedMissions: state.savedMissions.filter(m => m.id !== action.payload.id) }
     }
     case 'ADD_BOUNDARY_POINT': {
       const newBoundaryPoint = { lat: action.payload.lat, lng: action.payload.lng };
-      const currentBoundary = state.currentMission.boundary || [];
       return {
         ...state,
         currentMission: {
           ...state.currentMission,
-          boundary: [...currentBoundary, newBoundaryPoint],
+          boundary: [...(state.currentMission.boundary || []), newBoundaryPoint],
         },
       };
     }
     case 'CLEAR_BOUNDARY': {
+      return { ...state, currentMission: { ...state.currentMission, boundary: [] } };
+    }
+    case 'SET_WAYPOINT_ALT_TYPE': {
       return {
         ...state,
         currentMission: {
           ...state.currentMission,
-          boundary: [],
+          waypoints: state.currentMission.waypoints.map(wp => 
+            wp.id === action.payload.id ? { ...wp, altType: action.payload.altType } : wp
+          ),
+        },
+      };
+    }
+    case 'SET_TERRAIN_PROFILE': {
+      return {
+        ...state,
+        currentMission: {
+          ...state.currentMission,
+          waypoints: action.payload.waypointsWithTerrain,
+          terrainProfile: action.payload.terrainProfile,
         },
       };
     }
@@ -147,8 +150,50 @@ const missionReducer = (state: MissionState, action: MissionAction): MissionStat
 const MissionStateContext = createContext<MissionState | undefined>(undefined);
 const MissionDispatchContext = createContext<Dispatch<MissionAction> | undefined>(undefined);
 
-export const MissionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+const MissionProviderInternal: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(missionReducer, initialState);
+  const { googleMapsApiKey } = useSettings();
+
+  useEffect(() => {
+    const fetchTerrainData = async () => {
+      if (!googleMapsApiKey || state.currentMission.waypoints.length < 2) {
+        dispatch({ type: 'SET_TERRAIN_PROFILE', payload: { waypointsWithTerrain: state.currentMission.waypoints, terrainProfile: [] } });
+        return;
+      }
+      const path = state.currentMission.waypoints.map(wp => `${wp.lat},${wp.lng}`).join('|');
+      const SAMPLES = Math.min(100, state.currentMission.waypoints.length * 5); // Sensible number of samples
+      const url = `https://maps.googleapis.com/maps/api/elevation/json?path=${path}&samples=${SAMPLES}&key=${googleMapsApiKey}`;
+
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data.status === 'OK' && data.results) {
+          const terrainProfile = data.results.map((result: any) => ({ elevation: result.elevation }));
+          // For simplicity, let's assign elevation to the nearest waypoint.
+          // A more complex implementation would interpolate.
+          const waypointsWithTerrain = state.currentMission.waypoints.map((wp, index) => {
+            const terrainResult = data.results.find((r: any) => 
+              Math.abs(r.location.lat - wp.lat) < 0.0001 && Math.abs(r.location.lng - wp.lng) < 0.0001
+            );
+            return {
+              ...wp,
+              terrain_alt: terrainResult ? terrainResult.elevation : (wp.terrain_alt || 0)
+            };
+          });
+          
+          dispatch({ type: 'SET_TERRAIN_PROFILE', payload: { waypointsWithTerrain, terrainProfile } });
+        } else {
+          console.error('Failed to fetch elevation data:', data.status);
+        }
+      } catch (error) {
+        console.error('Error fetching elevation data:', error);
+      }
+    };
+
+    const debounceTimer = setTimeout(fetchTerrainData, 500); // Debounce API calls
+    return () => clearTimeout(debounceTimer);
+  }, [state.currentMission.waypoints, googleMapsApiKey]);
+
 
   return (
     <MissionStateContext.Provider value={state}>
@@ -158,6 +203,11 @@ export const MissionProvider: React.FC<{ children: ReactNode }> = ({ children })
     </MissionStateContext.Provider>
   );
 };
+
+export const MissionProvider: React.FC<{ children: ReactNode }> = ({ children }) => (
+    <MissionProviderInternal>{children}</MissionProviderInternal>
+);
+
 
 export const useMissionState = (): MissionState => {
   const context = useContext(MissionStateContext);

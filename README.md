@@ -2,8 +2,7 @@
 
 **Satellite MissionPlanner** is a modern, map-centric web application for planning, visualizing, and managing Unmanned Aerial Vehicle (UAV) missions. It integrates live weather data, realistic telemetry simulation, and a suite of professional planning tools into an intuitive, responsive interface powered by Google Maps.
 
-View a live version here:
-https://satellite-missionplanner-804375816371.us-west1.run.app/
+![Satellite MissionPlanner Screenshot](https://storage.googleapis.com/aai-web-samples/apps/mission-planner.png)
 
 ---
 
@@ -14,6 +13,10 @@ https://satellite-missionplanner-804375816371.us-west1.run.app/
   - Add, edit, and delete waypoints with precise control over location, altitude, and speed.
   - Define polygonal mission boundaries for safe operational areas.
   - Set a dedicated home position for return-to-launch procedures.
+  - **Terrain-Aware Planning**:
+    - **Live Elevation Data**: Automatically fetches ground elevation for each waypoint.
+    - **Altitude Toggle (AGL/MSL)**: Plan flights relative to the ground (Above Ground Level) or a fixed altitude (Mean Sea Level).
+    - **Terrain Profile Chart**: Instantly visualize your flight path against the underlying terrain for enhanced safety.
 - **Real-time Flight Simulation**:
   - Visualize the mission with a realistic telemetry overlay.
   - The drone icon moves smoothly along the path at user-defined speeds.
@@ -27,7 +30,7 @@ https://satellite-missionplanner-804375816371.us-west1.run.app/
   - Displays critical government-issued weather alerts (e.g., high wind warnings).
 - **Mission Management**:
   - Save and load multiple missions directly in the browser.
-  - Export mission plans to common formats: **GeoJSON, KML, CSV, MAVLink, and a printable PDF Mission Brief**.
+  - Export mission plans to common formats: **GeoJSON, KML, CSV, a printable PDF Mission Brief**, and a **terrain-aware MAVLink plan**.
 - **Polished UI/UX**:
   - A clean, modern, dark-themed interface.
   - Responsive design for both desktop and mobile use.
@@ -41,7 +44,7 @@ https://satellite-missionplanner-804375816371.us-west1.run.app/
 
 You need API keys from two services to enable all features. Both services offer generous free tiers suitable for development and personal use.
 
-1.  **Google Maps Platform**: Required for the map display and location search.
+1.  **Google Maps Platform**: Required for the map display, location search, and terrain elevation data.
 2.  **OpenWeather**: Required for live weather forecasts and alerts.
 
 ### Setup Instructions
@@ -52,7 +55,7 @@ You need API keys from two services to enable all features. Both services offer 
     *   **Google Maps API Key**:
         1.  Go to the [Google Cloud Console](https://console.cloud.google.com/).
         2.  Create a new project and **enable billing** (required by Google, but you'll stay within the free tier).
-        3.  Enable the **Maps JavaScript API** and the **Places API**.
+        3.  Enable the **Maps JavaScript API**, the **Places API**, and the **Elevation API**.
         4.  Go to "Credentials", create a new API key, and copy it.
         5.  **Important**: Restrict your key to your website's domain for security.
     *   **OpenWeather API Key**:
@@ -79,6 +82,8 @@ You need API keys from two services to enable all features. Both services offer 
     *   In the **"Mission Editor"** tab, give your mission a name and set a home position.
     *   Click on the map to add waypoints.
     *   Click on a waypoint in the list to expand its details. Use the sliders and input fields to adjust its altitude, speed, and precise coordinates.
+    *   Use the **AGL/MSL toggle** to decide if the altitude is relative to the ground or a fixed sea level.
+    *   Observe the **Terrain Profile Chart** to see your flight path in relation to the ground.
     *   To define a safe flight zone, click "Draw Boundary" and draw a polygon on the map.
 3.  **Validate and Simulate**:
     *   Check the "Plan Validation" section for any warnings about your flight plan.
@@ -87,4 +92,4 @@ You need API keys from two services to enable all features. Both services offer 
     *   Switch to the **"Weather"** tab to review the current conditions, forecast, and any critical alerts for the area.
 5.  **Save and Export**:
     *   Go to the **"Mission Library"** tab to save your current mission.
-    *   Use the export buttons to generate mission files in your desired format, including a comprehensive PDF brief.
+    *   Use the export buttons to generate mission files in your desired format, including a terrain-aware MAVLink plan file or a comprehensive PDF brief.

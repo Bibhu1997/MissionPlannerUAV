@@ -5,6 +5,8 @@ export interface Waypoint {
   lng: number;
   alt: number;
   speed: number;
+  altType: 'MSL' | 'AGL'; // Mean Sea Level (Absolute) vs Above Ground Level (Relative)
+  terrain_alt?: number; // Ground elevation at this point
 }
 
 export interface Mission {
@@ -13,6 +15,7 @@ export interface Mission {
   waypoints: Waypoint[];
   homePosition?: { lat: number; lng: number };
   boundary?: { lat: number; lng: number }[];
+  terrainProfile?: { elevation: number }[];
 }
 
 export interface Telemetry {
@@ -57,3 +60,5 @@ export enum ActivePanel {
   WEATHER = 'Weather',
   SETTINGS = 'Settings',
 }
+
+export type UnitSystem = 'metric' | 'imperial';

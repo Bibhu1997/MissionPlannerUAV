@@ -54,14 +54,40 @@ const SettingsPanel: React.FC = () => {
         openWeatherApiKey,
         setGoogleMapsApiKey,
         setOpenWeatherApiKey,
+        unitSystem,
+        setUnitSystem,
     } = useSettings();
 
     return (
         <div className="space-y-6">
-            <h2 className="text-xl font-bold text-slate-100 border-b border-base-300 pb-2">API Key Settings</h2>
-            <p className="text-sm text-slate-400">
-                API keys are required for map and weather functionality. They are saved securely in your browser's local storage and are never sent to our servers.
-            </p>
+            <div>
+                <h2 className="text-xl font-bold text-slate-100 border-b border-base-300 pb-2">Configuration</h2>
+                <p className="text-sm text-slate-400 mt-2">
+                    Manage API keys and application-wide settings.
+                </p>
+            </div>
+
+            <div>
+                 <h3 className="text-lg font-bold text-slate-100">Unit System</h3>
+                 <div className="p-3 bg-base-100 rounded-md space-y-2 mt-2">
+                     <p className="text-xs text-slate-500 mb-2">Choose the display units for altitude, speed, and distance.</p>
+                     <div className="flex bg-base-300 p-1 rounded-md">
+                        <button 
+                            onClick={() => setUnitSystem('imperial')}
+                            className={`flex-1 text-sm py-1 rounded-md transition-colors ${unitSystem === 'imperial' ? 'bg-primary text-white font-semibold' : 'hover:bg-base-200'}`}
+                        >
+                            Imperial (ft)
+                        </button>
+                        <button 
+                            onClick={() => setUnitSystem('metric')}
+                            className={`flex-1 text-sm py-1 rounded-md transition-colors ${unitSystem === 'metric' ? 'bg-primary text-white font-semibold' : 'hover:bg-base-200'}`}
+                        >
+                            Metric (m)
+                        </button>
+                     </div>
+                 </div>
+            </div>
+
             <ApiKeyInput
                 title="Google Maps"
                 description="Required for displaying the satellite map and searching for locations."
