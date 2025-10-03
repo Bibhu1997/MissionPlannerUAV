@@ -1,0 +1,5 @@
+{
+  "name": "Satellite MissionPlanner",
+  "description": "A map-centric UAV mission planning web application with weather integration, telemetry overlays, mission planning, and export capabilities. Built for modern UAV operations.",
+  "requestFramePermissions": []
+}
