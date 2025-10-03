@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTelemetry } from '../hooks/useTelemetry';
+import { useSettings } from '../hooks/useSettings';
 
 const SatelliteIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary">
@@ -45,11 +46,15 @@ const AltitudeIcon: React.FC<{ color: string }> = ({ color }) => (
 
 const Header: React.FC = () => {
     const { telemetry, isSimulating, alert } = useTelemetry();
+    const { unitSystem } = useSettings();
 
     const getAltitudeColor = (altitude: number): string => {
         if (altitude < 20 || altitude > 120) return 'text-red-400';
         return 'text-green-400';
     };
+
+    const M_TO_FT = 3.28084;
+    const isImperial = unitSystem === 'imperial';
 
     return (
         <header className="relative flex items-center justify-between p-3 bg-base-200 border-b border-base-300 shadow-md h-16 shrink-0 z-20">
@@ -62,7 +67,10 @@ const Header: React.FC = () => {
                     <>
                         <div className="flex items-center space-x-2" title="Altitude">
                             <AltitudeIcon color={getAltitudeColor(telemetry.alt)} />
-                            <span className={`text-sm font-semibold ${getAltitudeColor(telemetry.alt)}`}>{telemetry.alt.toFixed(1)}m</span>
+                            <span className={`text-sm font-semibold ${getAltitudeColor(telemetry.alt)}`}>
+                                {isImperial ? (telemetry.alt * M_TO_FT).toFixed(0) : telemetry.alt.toFixed(1)}
+                                <span className="text-xs text-slate-400 ml-1">{isImperial ? 'ft' : 'm'}</span>
+                            </span>
                         </div>
                          <div className="flex items-center space-x-2" title="Battery">
                             <BatteryIcon level={telemetry.battery} />
