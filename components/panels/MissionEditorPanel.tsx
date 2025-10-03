@@ -4,6 +4,7 @@ import { Waypoint } from '../../types';
 import { useTelemetry } from '../../hooks/useTelemetry';
 import { useEditorMode } from '../../hooks/useEditorMode';
 import TerrainProfileChart from '../TerrainProfileChart';
+import { useSettings } from '../../hooks/useSettings';
 
 const TrashIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>);
 const ChevronDown = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 transition-transform"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -26,7 +27,14 @@ const MissionEditorPanel: React.FC = () => {
     const dispatch = useMissionDispatch();
     const { isSimulating, startSimulation, stopSimulation } = useTelemetry();
     const { mode, setMode } = useEditorMode();
+    const { unitSystem } = useSettings();
     const [selectedWaypointId, setSelectedWaypointId] = useState<string | null>(null);
+
+    const M_TO_FT = 3.28084;
+    const MS_TO_MPH = 2.23694;
+    const isImperial = unitSystem === 'imperial';
+    const altUnitLabel = isImperial ? 'ft' : 'm';
+    const speedUnitLabel = isImperial ? 'mph' : 'm/s';
 
     const validationErrors = useMemo(() => {
         const errors: string[] = [];
@@ -109,13 +117,23 @@ const MissionEditorPanel: React.FC = () => {
                                         <button onClick={() => dispatch({type: 'SET_WAYPOINT_ALT_TYPE', payload: {id: wp.id, altType: 'MSL'}})} className={`px-2 py-0.5 text-xs rounded ${wp.altType === 'MSL' ? 'bg-primary text-white' : 'bg-base-200'}`}>Absolute (MSL)</button>
                                         <button onClick={() => dispatch({type: 'SET_WAYPOINT_ALT_TYPE', payload: {id: wp.id, altType: 'AGL'}})} className={`px-2 py-0.5 text-xs rounded ${wp.altType === 'AGL' ? 'bg-secondary text-white' : 'bg-base-200'}`}>Relative (AGL)</button>
                                     </div>
-                                    {wp.terrain_alt && <div className="text-center text-xs text-slate-400">Ground Elevation: {wp.terrain_alt.toFixed(1)}m MSL</div>}
+                                    {wp.terrain_alt != null && (
+                                        <div className="text-center text-xs text-slate-400">
+                                            Ground Elevation: {isImperial ? (wp.terrain_alt * M_TO_FT).toFixed(0) : wp.terrain_alt.toFixed(1)} {altUnitLabel} MSL
+                                        </div>
+                                    )}
                                     <div className="space-y-1">
-                                        <label className="text-xs font-medium text-slate-400 flex justify-between">Altitude ({wp.altType}) <span>{wp.alt}m</span></label>
+                                        <label className="text-xs font-medium text-slate-400 flex justify-between">
+                                            Altitude ({wp.altType}) 
+                                            <span>{isImperial ? (wp.alt * M_TO_FT).toFixed(0) : wp.alt} {altUnitLabel}</span>
+                                        </label>
                                         <input type="range" min="10" max="150" step="1" value={wp.alt} onChange={e => handleUpdate(wp.id, 'alt', e.target.value)} className="w-full h-2 bg-base-300 rounded-lg appearance-none cursor-pointer" />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-xs font-medium text-slate-400 flex justify-between">Speed (m/s) <span>{wp.speed}m/s</span></label>
+                                        <label className="text-xs font-medium text-slate-400 flex justify-between">
+                                            Speed 
+                                            <span>{isImperial ? (wp.speed * MS_TO_MPH).toFixed(1) : wp.speed} {speedUnitLabel}</span>
+                                        </label>
                                         <input type="range" min="1" max="25" step="1" value={wp.speed} onChange={e => handleUpdate(wp.id, 'speed', e.target.value)} className="w-full h-2 bg-base-300 rounded-lg appearance-none cursor-pointer" />
                                     </div>
                                 </div>
