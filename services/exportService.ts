@@ -166,12 +166,16 @@ export const exportToPDF = (mission: Mission, weather: WeatherData) => {
     doc.setFontSize(12);
     doc.text('Mission Summary', 14, 40);
     
-    const summaryBody = [
+    const summaryBody: (string | number)[][] = [
         ['Mission Name', mission.name],
         ['Number of Waypoints', mission.waypoints.length],
         ['Total Distance', `${(totalDistance / 1000).toFixed(2)} km`],
         ['Estimated Flight Time', formatTime(estimatedTime)],
     ];
+
+    if (mission.homePosition) {
+        summaryBody.push(['Home Position', `${mission.homePosition.lat.toFixed(6)}, ${mission.homePosition.lng.toFixed(6)}`]);
+    }
 
     doc.autoTable({
         startY: 42,

@@ -17,12 +17,15 @@ type MissionAction =
   | { type: 'CREATE_NEW_MISSION' }
   | { type: 'LOAD_MISSION'; payload: Mission }
   | { type: 'SAVE_MISSION' }
-  | { type: 'DELETE_SAVED_MISSION'; payload: { id: string } };
+  | { type: 'DELETE_SAVED_MISSION'; payload: { id: string } }
+  | { type: 'ADD_BOUNDARY_POINT'; payload: { lat: number; lng: number } }
+  | { type: 'CLEAR_BOUNDARY' };
 
 const createNewMission = (): Mission => ({
   id: `mission_${Date.now()}`,
   name: 'New Mission',
   waypoints: [],
+  boundary: [],
   homePosition: { lat: 34.0522, lng: -118.2437 } // Default to LA for consistency
 });
 
@@ -115,6 +118,26 @@ const missionReducer = (state: MissionState, action: MissionAction): MissionStat
             ...state,
             savedMissions: state.savedMissions.filter(m => m.id !== action.payload.id)
         }
+    }
+    case 'ADD_BOUNDARY_POINT': {
+      const newBoundaryPoint = { lat: action.payload.lat, lng: action.payload.lng };
+      const currentBoundary = state.currentMission.boundary || [];
+      return {
+        ...state,
+        currentMission: {
+          ...state.currentMission,
+          boundary: [...currentBoundary, newBoundaryPoint],
+        },
+      };
+    }
+    case 'CLEAR_BOUNDARY': {
+      return {
+        ...state,
+        currentMission: {
+          ...state.currentMission,
+          boundary: [],
+        },
+      };
     }
     default:
       return state;

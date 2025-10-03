@@ -8,10 +8,11 @@ export interface Waypoint {
 }
 
 export interface Mission {
-  id: string;
+  id:string;
   name: string;
   waypoints: Waypoint[];
   homePosition?: { lat: number; lng: number };
+  boundary?: { lat: number; lng: number }[];
 }
 
 export interface Telemetry {

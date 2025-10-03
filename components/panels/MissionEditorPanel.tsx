@@ -1,8 +1,10 @@
+
 import React from 'react';
 import { useMissionState, useMissionDispatch } from '../../hooks/useMission';
 import { Waypoint } from '../../types';
 import { useTelemetry } from '../../hooks/useTelemetry';
 import AltitudeProfileChart from '../AltitudeProfileChart';
+import { useEditorMode } from '../../hooks/useEditorMode';
 
 const TrashIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
@@ -54,6 +56,7 @@ const MissionEditorPanel: React.FC = () => {
     const { currentMission } = useMissionState();
     const dispatch = useMissionDispatch();
     const { isSimulating, startSimulation, stopSimulation } = useTelemetry();
+    const { mode, setMode } = useEditorMode();
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         dispatch({ type: 'SET_MISSION_NAME', payload: e.target.value });
@@ -104,6 +107,31 @@ const MissionEditorPanel: React.FC = () => {
                             onChange={e => handleHomePositionChange('lng', e.target.value)}
                             className="w-full bg-base-300 p-2 rounded-md border-transparent focus:border-primary focus:ring-0 text-slate-100"
                         />
+                    </div>
+                </div>
+                 <div className="pt-2">
+                    <label className="block text-sm font-medium text-slate-400 mb-1">Mission Boundary</label>
+                    <p className="text-xs text-slate-500 mb-2">
+                        {mode === 'BOUNDARY' 
+                            ? 'Click on the map to add points. Click the button again to finish.' 
+                            : 'Define a polygonal operational area for the mission.'}
+                    </p>
+                    <div className="flex space-x-2">
+                        <button 
+                            onClick={() => setMode(mode === 'BOUNDARY' ? 'WAYPOINT' : 'BOUNDARY')}
+                            className={`flex-1 py-2 px-4 text-sm rounded-md font-semibold transition-colors text-white ${
+                                mode === 'BOUNDARY' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-primary hover:bg-sky-500'
+                            }`}
+                        >
+                            {mode === 'BOUNDARY' ? 'Finish Drawing' : 'Draw Boundary'}
+                        </button>
+                        <button 
+                            onClick={() => dispatch({ type: 'CLEAR_BOUNDARY' })}
+                            disabled={!currentMission.boundary || currentMission.boundary.length === 0}
+                            className="flex-1 py-2 px-4 text-sm rounded-md font-semibold transition-colors bg-base-300 hover:bg-slate-600 text-slate-200 disabled:bg-base-300/50 disabled:cursor-not-allowed"
+                        >
+                            Clear Boundary
+                        </button>
                     </div>
                 </div>
             </div>

@@ -1,7 +1,9 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { useMissionState, useMissionDispatch } from '../hooks/useMission';
 import { useTelemetry } from '../hooks/useTelemetry';
 import { useSettings } from '../hooks/useSettings';
+import { useEditorMode } from '../hooks/useEditorMode';
 
 // FIX: Add global declarations for the Google Maps API to resolve TypeScript errors.
 // This prevents "Cannot find namespace 'google'" and "Property 'google' does not exist on type 'Window'".
@@ -76,6 +78,23 @@ declare global {
         setMap(map: Map | null): void;
         setPath(path: (LatLng | LatLngLiteral)[]): void;
       }
+      
+      interface PolygonOptions {
+        paths?: (LatLng | LatLngLiteral)[];
+        strokeColor?: string;
+        strokeOpacity?: number;
+        strokeWeight?: number;
+        fillColor?: string;
+        fillOpacity?: number;
+        map?: Map;
+      }
+
+      class Polygon {
+        constructor(opts?: PolygonOptions);
+        getMap(): Map | null;
+        setMap(map: Map | null): void;
+        setPath(path: (LatLng | LatLngLiteral)[] | LatLng[] | LatLngLiteral[]): void;
+      }
 
       namespace places {
         class Autocomplete {
@@ -137,11 +156,13 @@ const MapCanvas: React.FC = () => {
   const dispatch = useMissionDispatch();
   const { telemetry } = useTelemetry();
   const { googleMapsApiKey } = useSettings();
+  const { mode } = useEditorMode();
   
   const [mapStatus, setMapStatus] = useState<'loading' | 'ready' | 'error' | 'no_key'>('loading');
 
   const markersRef = useRef<google.maps.Marker[]>([]);
   const polylineRef = useRef<google.maps.Polyline | null>(null);
+  const boundaryPolygonRef = useRef<google.maps.Polygon | null>(null);
   const telemetryMarkerRef = useRef<google.maps.Marker | null>(null);
 
   useEffect(() => {
@@ -194,16 +215,23 @@ const MapCanvas: React.FC = () => {
     if (!map) return;
     const clickListener = map.addListener('click', (e: google.maps.MapMouseEvent) => {
       if (e.latLng) {
-        dispatch({
-          type: 'ADD_WAYPOINT',
-          payload: { lat: e.latLng.lat(), lng: e.latLng.lng() },
-        });
+        if (mode === 'BOUNDARY') {
+            dispatch({
+                type: 'ADD_BOUNDARY_POINT',
+                payload: { lat: e.latLng.lat(), lng: e.latLng.lng() },
+            });
+        } else { // WAYPOINT mode
+            dispatch({
+                type: 'ADD_WAYPOINT',
+                payload: { lat: e.latLng.lat(), lng: e.latLng.lng() },
+            });
+        }
       }
     });
     return () => {
       window.google.maps.event.removeListener(clickListener);
     };
-  }, [map, dispatch]);
+  }, [map, dispatch, mode]);
 
   useEffect(() => {
     if (!map) return;
@@ -242,10 +270,31 @@ const MapCanvas: React.FC = () => {
 
   useEffect(() => {
     if (!map) return;
+    const boundaryPath = currentMission.boundary || [];
+
+    if (!boundaryPolygonRef.current) {
+        boundaryPolygonRef.current = new window.google.maps.Polygon({
+            strokeColor: '#f472b6',
+            strokeOpacity: 0.9,
+            strokeWeight: 2,
+            fillColor: '#f472b6',
+            fillOpacity: 0.2,
+        });
+    }
+
+    boundaryPolygonRef.current.setPath(boundaryPath);
+    if (boundaryPath.length > 0) {
+        boundaryPolygonRef.current.setMap(map);
+    } else {
+        boundaryPolygonRef.current.setMap(null);
+    }
+  }, [map, currentMission.boundary]);
+
+  useEffect(() => {
+    if (!map) return;
     if (telemetry) {
       const position = { lat: telemetry.lat, lng: telemetry.lng };
       const telemetryIcon = {
-        // Custom Drone Icon SVG Path
         path: 'M12,2.5c-5.25,0-9.5,4.25-9.5,9.5s4.25,9.5,9.5,9.5s9.5-4.25,9.5-9.5S17.25,2.5,12,2.5z M12,4.5c4.14,0,7.5,3.36,7.5,7.5 c0,4.14-3.36,7.5-7.5,7.5c-4.14,0-7.5-3.36-7.5-7.5C4.5,7.86,7.86,4.5,12,4.5z M11,11v-4h2v4H11z M11,13h2v2h-2V13z M3,12h2 M19,12h2 M12,3V1 M12,23v-2',
         fillColor: '#4ade80',
         fillOpacity: 1,
