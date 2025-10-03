@@ -25,6 +25,15 @@ const StatusIndicator: React.FC<{ label: string; value: string | number; color: 
 
 const Header: React.FC = () => {
     const { telemetry, isSimulating } = useTelemetry();
+
+    const getAltitudeColor = (altitude: number): string => {
+        // Common safety limits: below 20m is low, above 120m (~400ft) is a common regulatory ceiling.
+        if (altitude < 20 || altitude > 120) {
+            return 'text-red-400'; // Unsafe
+        }
+        return 'text-green-400'; // Safe
+    };
+
     return (
         <header className="flex items-center justify-between p-3 bg-base-200 border-b border-base-300 shadow-md h-16 shrink-0">
             <div className="flex items-center space-x-3">
@@ -36,7 +45,11 @@ const Header: React.FC = () => {
                     <>
                         <StatusIndicator label="Lat" value={telemetry.lat.toFixed(4)} color="text-secondary" />
                         <StatusIndicator label="Lon" value={telemetry.lng.toFixed(4)} color="text-secondary" />
-                        <StatusIndicator label="Alt" value={`${telemetry.alt.toFixed(1)}m`} color="text-secondary" />
+                        <StatusIndicator 
+                            label="Alt" 
+                            value={`${telemetry.alt.toFixed(1)}m`} 
+                            color={getAltitudeColor(telemetry.alt)} 
+                        />
                         <StatusIndicator label="Speed" value={`${telemetry.speed.toFixed(1)}m/s`} color="text-secondary" />
                         <StatusIndicator label="Battery" value={`${telemetry.battery.toFixed(0)}%`} color={telemetry.battery > 20 ? 'text-green-400' : 'text-red-400'} />
                         <StatusIndicator label="Signal" value={`${telemetry.signal.toFixed(0)}%`} color={telemetry.signal > 50 ? 'text-green-400' : 'text-orange-400'} />

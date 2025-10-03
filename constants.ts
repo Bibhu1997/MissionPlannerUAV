@@ -13,6 +13,7 @@ export const MOCK_WEATHER_DATA: WeatherData = {
     { day: 'Thu', temp_min: 66, temp_max: 79, humidity: 68, precipitation: 15, weather_icon: '03d', weather_main: 'Cloudy' },
     { day: 'Fri', temp_min: 70, temp_max: 82, humidity: 62, precipitation: 5, weather_icon: '01d', weather_main: 'Clear' },
   ],
+  alerts: [],
 };
 
 export const SIDEBAR_PANELS: ActivePanel[] = [

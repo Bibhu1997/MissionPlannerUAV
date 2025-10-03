@@ -39,6 +39,15 @@ const interpolate = (from: Waypoint, to: Waypoint, fraction: number) => {
     return { lat, lng, alt };
 };
 
+interface SimulationState {
+    animationFrameId: number | null;
+    currentWaypointIndex: number;
+    progress: number; // meters traveled towards next waypoint
+    lastFrameTime: number;
+    elapsedTime: number;
+    totalMissionTime: number;
+    homePosition: { lat: number; lng: number };
+}
 
 interface TelemetryState {
   telemetry: Telemetry | null;
@@ -54,25 +63,15 @@ export const TelemetryProvider: React.FC<{ children: ReactNode }> = ({ children 
   const [telemetry, setTelemetry] = useState<Telemetry | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
   
-  const simulationRef = useRef<{
-    animationFrameId: number | null;
-    currentWaypointIndex: number;
-    progress: number; // meters traveled towards next waypoint
-    lastFrameTime: number;
-  }>({
-    animationFrameId: null,
-    currentWaypointIndex: 0,
-    progress: 0,
-    lastFrameTime: 0,
-  });
+  const simulationRef = useRef<SimulationState | null>(null);
 
   const stopSimulation = () => {
-    if (simulationRef.current.animationFrameId) {
+    if (simulationRef.current?.animationFrameId) {
       cancelAnimationFrame(simulationRef.current.animationFrameId);
     }
     setIsSimulating(false);
     setTelemetry(null);
-    simulationRef.current = { animationFrameId: null, currentWaypointIndex: 0, progress: 0, lastFrameTime: 0 };
+    simulationRef.current = null;
   };
 
   const startSimulation = () => {
@@ -82,18 +81,35 @@ export const TelemetryProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
     stopSimulation(); // Reset any existing simulation
     
+    let totalMissionTime = 0;
+    for (let i = 0; i < currentMission.waypoints.length - 1; i++) {
+        const from = currentMission.waypoints[i];
+        const to = currentMission.waypoints[i + 1];
+        const distance = getDistance(from, to);
+        if (from.speed > 0) {
+            totalMissionTime += distance / from.speed;
+        }
+    }
+    
+    const homePosition = currentMission.homePosition || currentMission.waypoints[0];
+
     simulationRef.current = {
         animationFrameId: null,
         currentWaypointIndex: 0,
         progress: 0,
         lastFrameTime: performance.now(),
+        elapsedTime: 0,
+        totalMissionTime: totalMissionTime > 0 ? totalMissionTime : 1, // Avoid division by zero
+        homePosition: homePosition,
     };
     
     const firstWp = currentMission.waypoints[0];
+    const initialSignal = 100 - (getDistance(firstWp, homePosition) / 5000) * 100;
+
     setTelemetry({
         lat: firstWp.lat, lng: firstWp.lng, alt: firstWp.alt,
         heading: getBearing(firstWp, currentMission.waypoints[1]),
-        speed: 0, battery: 100, signal: 99
+        speed: 0, battery: 100, signal: Math.max(0, initialSignal)
     });
 
     setIsSimulating(true);
@@ -104,10 +120,13 @@ export const TelemetryProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     const simulationLoop = (timestamp: number) => {
         const sim = simulationRef.current;
+        if (!sim) return;
+
         const waypoints = currentMission.waypoints;
 
         const deltaTime = (timestamp - sim.lastFrameTime) / 1000; // in seconds
         sim.lastFrameTime = timestamp;
+        sim.elapsedTime += deltaTime;
 
         const fromWp = waypoints[sim.currentWaypointIndex];
         const toWpIndex = sim.currentWaypointIndex + 1;
@@ -124,43 +143,54 @@ export const TelemetryProvider: React.FC<{ children: ReactNode }> = ({ children 
         sim.progress += speed * deltaTime;
 
         if (sim.progress >= segmentDistance) {
-            // Move to next segment
             sim.currentWaypointIndex++;
             sim.progress = 0;
             if (sim.currentWaypointIndex >= waypoints.length - 1) {
                 stopSimulation();
                 return;
             }
-        } else {
-            const fraction = sim.progress / segmentDistance;
-            const currentPosition = interpolate(fromWp, toWp, fraction);
-            const heading = getBearing(fromWp, toWp);
-
-            const totalWaypoints = waypoints.length;
-            const completedWaypoints = sim.currentWaypointIndex + fraction;
-            
-            setTelemetry({
-                lat: currentPosition.lat,
-                lng: currentPosition.lng,
-                alt: currentPosition.alt,
-                heading: heading,
-                speed: speed,
-                battery: 100 - (completedWaypoints / (totalWaypoints -1)) * 50,
-                signal: 95 - Math.random() * 5,
-            });
         }
+        
+        // Recalculate 'from' and 'to' in case we moved to the next segment
+        const currentFromWp = waypoints[sim.currentWaypointIndex];
+        const currentToWp = waypoints[sim.currentWaypointIndex + 1];
+        const currentSegmentDistance = getDistance(currentFromWp, currentToWp);
+        
+        const fraction = currentSegmentDistance > 0 ? sim.progress / currentSegmentDistance : 1;
+        const currentPosition = interpolate(currentFromWp, currentToWp, fraction);
+        const heading = getBearing(currentFromWp, currentToWp);
+
+        // --- New Realistic Degradation ---
+        // Battery drains by 80% over the total mission time
+        const battery = Math.max(0, 100 - (sim.elapsedTime / sim.totalMissionTime) * 80);
+
+        // Signal degrades with distance from home, with noise. Max range 5km.
+        const distanceFromHome = getDistance(currentPosition, sim.homePosition);
+        const maxRange = 5000; // 5km
+        const baseSignal = Math.max(0, 100 - (distanceFromHome / maxRange) * 100);
+        const signal = Math.max(0, baseSignal - (Math.random() * 5)); // Add noise
+        
+        setTelemetry({
+            lat: currentPosition.lat,
+            lng: currentPosition.lng,
+            alt: currentPosition.alt,
+            heading: heading,
+            speed: speed,
+            battery: battery,
+            signal: signal,
+        });
         
         sim.animationFrameId = requestAnimationFrame(simulationLoop);
     };
 
-    simulationRef.current.animationFrameId = requestAnimationFrame(simulationLoop);
+    simulationRef.current!.animationFrameId = requestAnimationFrame(simulationLoop);
 
     return () => {
-        if (simulationRef.current.animationFrameId) {
+        if (simulationRef.current?.animationFrameId) {
             cancelAnimationFrame(simulationRef.current.animationFrameId);
         }
     };
-  }, [isSimulating, currentMission.waypoints]);
+  }, [isSimulating, currentMission]);
 
 
   return (

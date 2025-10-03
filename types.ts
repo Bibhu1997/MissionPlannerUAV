@@ -35,10 +35,19 @@ export interface ForecastDetail {
   weather_main: string;
 }
 
+export interface Alert {
+  sender_name: string;
+  event: string;
+  start: number;
+  end: number;
+  description: string;
+}
+
 export interface WeatherData {
   metar: string;
   taf: string;
   forecast: ForecastDetail[];
+  alerts?: Alert[];
 }
 
 

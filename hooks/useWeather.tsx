@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
-import { WeatherData, ForecastDetail } from '../types';
+import { WeatherData, ForecastDetail, Alert } from '../types';
 import { useSettings } from './useSettings';
 import { MOCK_WEATHER_DATA } from '../constants';
 
@@ -11,35 +11,18 @@ interface WeatherState {
 
 const WeatherContext = createContext<WeatherState | undefined>(undefined);
 
-const processWeatherData = (data: any): ForecastDetail[] => {
-    const dailyData: { [key: string]: any[] } = {};
-    data.list.forEach((item: any) => {
-        const date = new Date(item.dt * 1000).toLocaleDateString('en-US', { weekday: 'short' });
-        if (!dailyData[date]) {
-            dailyData[date] = [];
-        }
-        dailyData[date].push(item);
-    });
-
-    return Object.keys(dailyData).slice(0, 5).map(day => {
-        const dayEntries = dailyData[day];
-        const temps = dayEntries.map(e => e.main.temp);
-        const humidity = dayEntries.map(e => e.main.humidity);
-        const precipitation = dayEntries.map(e => e.pop);
-        const middayEntry = dayEntries.find(e => new Date(e.dt * 1000).getHours() >= 12) || dayEntries[0];
-
-        return {
-            day: day,
-            temp_min: Math.round(Math.min(...temps)),
-            temp_max: Math.round(Math.max(...temps)),
-            humidity: Math.round(humidity.reduce((a, b) => a + b) / humidity.length),
-            precipitation: Math.round(Math.max(...precipitation) * 100),
-            weather_icon: middayEntry.weather[0].icon,
-            weather_main: middayEntry.weather[0].main,
-        };
-    });
-}
-
+const processForecastData = (daily: any[]): ForecastDetail[] => {
+    if (!daily) return [];
+    return daily.slice(0, 5).map(day => ({
+        day: new Date(day.dt * 1000).toLocaleDateString('en-US', { weekday: 'short' }),
+        temp_min: Math.round(day.temp.min),
+        temp_max: Math.round(day.temp.max),
+        humidity: day.humidity,
+        precipitation: Math.round(day.pop * 100),
+        weather_icon: day.weather[0].icon,
+        weather_main: day.weather[0].main,
+    }));
+};
 
 export const WeatherProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { openWeatherApiKey } = useSettings();
@@ -59,7 +42,8 @@ export const WeatherProvider: React.FC<{ children: ReactNode }> = ({ children })
             setError(null);
             const lat = 34.0522;
             const lon = -118.2437;
-            const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${openWeatherApiKey}&units=imperial`;
+            // Using One Call API 3.0 for forecast and alerts
+            const url = `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&appid=${openWeatherApiKey}&units=imperial&exclude=current,minutely,hourly`;
 
             try {
                 const response = await fetch(url);
@@ -68,8 +52,15 @@ export const WeatherProvider: React.FC<{ children: ReactNode }> = ({ children })
                     throw new Error(errorData.message || `Failed to fetch weather data. Status: ${response.status}`);
                 }
                 const data = await response.json();
-                const processedForecast = processWeatherData(data);
-                setWeather(prev => ({ ...prev, forecast: processedForecast }));
+                const processedForecast = processForecastData(data.daily);
+                const alerts: Alert[] = data.alerts || [];
+                
+                setWeather(prev => ({ 
+                    ...prev, 
+                    forecast: processedForecast,
+                    alerts: alerts
+                }));
+
             } catch (err: any) {
                 setError(err.message);
                 console.error(err);
