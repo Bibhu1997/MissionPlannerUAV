@@ -156,34 +156,33 @@ const MissionProviderInternal: React.FC<{ children: ReactNode }> = ({ children }
 
   useEffect(() => {
     const fetchTerrainData = async () => {
-      if (!googleMapsApiKey || state.currentMission.waypoints.length < 2) {
-        dispatch({ type: 'SET_TERRAIN_PROFILE', payload: { waypointsWithTerrain: state.currentMission.waypoints, terrainProfile: [] } });
+      const { waypoints } = state.currentMission;
+      if (!googleMapsApiKey || waypoints.length === 0) {
+        // Clear terrain data if no waypoints or no key
+        const waypointsWithoutTerrain = waypoints.map(({ terrain_alt, ...wp }) => wp);
+        dispatch({ type: 'SET_TERRAIN_PROFILE', payload: { waypointsWithTerrain: waypointsWithoutTerrain, terrainProfile: [] } });
         return;
       }
-      const path = state.currentMission.waypoints.map(wp => `${wp.lat},${wp.lng}`).join('|');
-      const SAMPLES = Math.min(100, state.currentMission.waypoints.length * 5); // Sensible number of samples
-      const url = `https://maps.googleapis.com/maps/api/elevation/json?path=${path}&samples=${SAMPLES}&key=${googleMapsApiKey}`;
+
+      // Use the 'locations' parameter for precise elevation at each waypoint
+      const locations = waypoints.map(wp => `${wp.lat},${wp.lng}`).join('|');
+      const url = `https://maps.googleapis.com/maps/api/elevation/json?locations=${locations}&key=${googleMapsApiKey}`;
 
       try {
         const response = await fetch(url);
         const data = await response.json();
-        if (data.status === 'OK' && data.results) {
+        
+        if (data.status === 'OK' && data.results && data.results.length === waypoints.length) {
+          const waypointsWithTerrain = waypoints.map((wp, index) => ({
+            ...wp,
+            terrain_alt: data.results[index].elevation,
+          }));
           const terrainProfile = data.results.map((result: any) => ({ elevation: result.elevation }));
-          // For simplicity, let's assign elevation to the nearest waypoint.
-          // A more complex implementation would interpolate.
-          const waypointsWithTerrain = state.currentMission.waypoints.map((wp, index) => {
-            const terrainResult = data.results.find((r: any) => 
-              Math.abs(r.location.lat - wp.lat) < 0.0001 && Math.abs(r.location.lng - wp.lng) < 0.0001
-            );
-            return {
-              ...wp,
-              terrain_alt: terrainResult ? terrainResult.elevation : (wp.terrain_alt || 0)
-            };
-          });
-          
           dispatch({ type: 'SET_TERRAIN_PROFILE', payload: { waypointsWithTerrain, terrainProfile } });
         } else {
-          console.error('Failed to fetch elevation data:', data.status);
+          console.error('Failed to fetch elevation data:', data.status, data.error_message);
+          // If fetch fails, keep existing waypoints but clear profile to avoid stale chart data
+          dispatch({ type: 'SET_TERRAIN_PROFILE', payload: { waypointsWithTerrain: waypoints, terrainProfile: [] } });
         }
       } catch (error) {
         console.error('Error fetching elevation data:', error);
@@ -192,7 +191,7 @@ const MissionProviderInternal: React.FC<{ children: ReactNode }> = ({ children }
 
     const debounceTimer = setTimeout(fetchTerrainData, 500); // Debounce API calls
     return () => clearTimeout(debounceTimer);
-  }, [state.currentMission.waypoints, googleMapsApiKey]);
+  }, [state.currentMission.waypoints, googleMapsApiKey, dispatch]);
 
 
   return (
