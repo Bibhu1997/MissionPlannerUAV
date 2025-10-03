@@ -178,6 +178,68 @@ export const exportToMAVLink = (mission: Mission) => {
     alert("MAVLink export is a simplified text representation. For real flights, use specialized software.");
 };
 
+export const exportBoundaryToGeoJSON = (mission: Mission) => {
+  if (!mission.boundary || mission.boundary.length < 3) {
+    alert("A mission boundary must have at least 3 points to be exported.");
+    return;
+  }
+
+  const boundaryCoords = mission.boundary.map(p => [p.lng, p.lat]);
+  // Ensure the polygon is closed for GeoJSON
+  if (boundaryCoords.length > 0 && (boundaryCoords[0][0] !== boundaryCoords[boundaryCoords.length - 1][0] || boundaryCoords[0][1] !== boundaryCoords[boundaryCoords.length - 1][1])) {
+    boundaryCoords.push(boundaryCoords[0]);
+  }
+
+  const geojson = {
+    type: 'FeatureCollection',
+    features: [{
+      type: 'Feature',
+      properties: { name: `${mission.name} - Boundary` },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [boundaryCoords],
+      },
+    }],
+  };
+
+  triggerDownload(`${mission.name}_Boundary.geojson`, JSON.stringify(geojson, null, 2), 'application/geo+json');
+};
+
+export const exportBoundaryToKML = (mission: Mission) => {
+  if (!mission.boundary || mission.boundary.length < 3) {
+    alert("A mission boundary must have at least 3 points to be exported.");
+    return;
+  }
+
+  const kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>${mission.name} - Boundary</name>
+    <Style id="boundaryStyle">
+      <LineStyle><color>ffb672f4</color><width>2</width></LineStyle>
+      <PolyStyle><color>33b672f4</color></PolyStyle>
+    </Style>
+    <Placemark>
+      <name>Mission Boundary</name>
+      <styleUrl>#boundaryStyle</styleUrl>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              ${mission.boundary.map(p => `${p.lng},${p.lat},0`).join('\n                  ')}
+              ${mission.boundary.length > 0 ? `${mission.boundary[0].lng},${mission.boundary[0].lat},0` : ''}
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+  </Document>
+</kml>`;
+
+  triggerDownload(`${mission.name}_Boundary.kml`, kmlContent, 'application/vnd.google-earth.kml+xml');
+};
+
+
 // --- PDF Export Implementation ---
 const toRadians = (deg: number) => deg * Math.PI / 180;
 

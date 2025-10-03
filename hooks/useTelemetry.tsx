@@ -79,7 +79,8 @@ export const TelemetryProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   const startSimulation = () => {
     if (currentMission.waypoints.length < 2) {
-      alert("Cannot start simulation. At least 2 waypoints are required for a flight path.");
+      // FIX: Changed `alert` to `setAlert` to update the component state instead of calling the shadowed window.alert function.
+      setAlert("Cannot start simulation. At least 2 waypoints are required for a flight path.");
       return;
     }
     stopSimulation(); // Reset any existing simulation

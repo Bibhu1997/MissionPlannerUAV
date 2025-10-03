@@ -38,6 +38,8 @@ declare global {
         setMap(map: Map | null): void;
         setPosition(position: LatLng | LatLngLiteral): void;
         setIcon(icon: any): void;
+        // FIX: Added missing method signature for addListener to the Marker interface to resolve type errors.
+        addListener(eventName: string, handler: (...args: any[]) => void): MapsEventListener;
       }
       interface PolylineOptions {
         path: (LatLng | LatLngLiteral)[];

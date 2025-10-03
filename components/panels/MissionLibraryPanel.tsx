@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useMissionState, useMissionDispatch } from '../../hooks/useMission';
 import { Mission } from '../../types';
@@ -8,6 +9,8 @@ const MissionLibraryPanel: React.FC = () => {
     const { currentMission, savedMissions } = useMissionState();
     const { weather } = useWeather();
     const dispatch = useMissionDispatch();
+
+    const canExportBoundary = currentMission.boundary && currentMission.boundary.length > 2;
 
     const handleSave = () => {
         dispatch({ type: 'SAVE_MISSION' });
@@ -68,6 +71,18 @@ const MissionLibraryPanel: React.FC = () => {
                     <button onClick={() => exportService.exportToKML(currentMission)} className="bg-base-300 hover:bg-slate-600 text-slate-200 font-semibold py-2 px-4 rounded-md transition-colors">KML</button>
                     <button onClick={() => exportService.exportToCSV(currentMission)} className="bg-base-300 hover:bg-slate-600 text-slate-200 font-semibold py-2 px-4 rounded-md transition-colors">CSV</button>
                     <button onClick={() => exportService.exportToMAVLink(currentMission)} className="bg-base-300 hover:bg-slate-600 text-slate-200 font-semibold py-2 px-4 rounded-md transition-colors">MAVLink (Plan)</button>
+                    <button
+                        onClick={() => exportService.exportBoundaryToGeoJSON(currentMission)}
+                        disabled={!canExportBoundary}
+                        className="bg-base-300 hover:bg-slate-600 text-slate-200 font-semibold py-2 px-4 rounded-md transition-colors disabled:bg-base-300/50 disabled:cursor-not-allowed disabled:text-slate-500">
+                        Boundary (GeoJSON)
+                    </button>
+                    <button
+                        onClick={() => exportService.exportBoundaryToKML(currentMission)}
+                        disabled={!canExportBoundary}
+                        className="bg-base-300 hover:bg-slate-600 text-slate-200 font-semibold py-2 px-4 rounded-md transition-colors disabled:bg-base-300/50 disabled:cursor-not-allowed disabled:text-slate-500">
+                        Boundary (KML)
+                    </button>
                     <button onClick={() => exportService.exportToPDF(currentMission, weather)} className="col-span-2 bg-accent/80 hover:bg-accent text-white font-semibold py-2 px-4 rounded-md transition-colors">PDF Brief</button>
                 </div>
             </div>
