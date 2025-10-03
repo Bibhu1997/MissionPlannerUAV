@@ -1,4 +1,3 @@
-
 import { WeatherData, ActivePanel } from './types';
 
 export const DEFAULT_ALTITUDE = 100;
@@ -16,23 +15,25 @@ export const MOCK_WEATHER_DATA: WeatherData = {
   ],
 };
 
-export const PREFLIGHT_CHECKLIST_ITEMS = [
-  'UAV battery fully charged',
-  'Controller battery fully charged',
-  'Propellers secure and undamaged',
-  'Gimbal and camera check',
-  'GPS lock acquired',
-  'Return-to-Home altitude set',
-  'Airspace authorization checked (LAANC/NOTAM)',
-  'Weather conditions acceptable',
-  'Obstacle clearance plan reviewed',
-  'Emergency procedures briefed',
-];
-
 export const SIDEBAR_PANELS: ActivePanel[] = [
   ActivePanel.EDITOR,
   ActivePanel.LIBRARY,
   ActivePanel.WEATHER,
-  ActivePanel.CHECKLIST,
   ActivePanel.SETTINGS
+];
+
+// FIX: Added missing PREFLIGHT_CHECKLIST_ITEMS constant.
+export const PREFLIGHT_CHECKLIST_ITEMS: string[] = [
+  'Weather conditions checked and suitable',
+  'UAV frame and propellers inspected for damage',
+  'All batteries (UAV, controller, payload) fully charged',
+  'Payload (camera, etc.) securely mounted and functional',
+  'Memory card has sufficient space and is formatted',
+  'Controller antennas positioned correctly',
+  'GPS lock acquired (sufficient satellites)',
+  'Compass calibrated, if required by location change',
+  'Home point set and verified on map',
+  'Flight plan uploaded and verified',
+  'Clear takeoff and landing zones established',
+  'Airspace checked for restrictions (NOTAMs, TFRs)',
 ];

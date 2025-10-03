@@ -45,6 +45,5 @@ export enum ActivePanel {
   EDITOR = 'Mission Editor',
   LIBRARY = 'Mission Library',
   WEATHER = 'Weather',
-  CHECKLIST = 'Checklist',
   SETTINGS = 'Settings',
 }

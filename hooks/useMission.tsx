@@ -13,6 +13,7 @@ type MissionAction =
   | { type: 'UPDATE_WAYPOINT'; payload: Waypoint }
   | { type: 'DELETE_WAYPOINT'; payload: { id: string } }
   | { type: 'SET_MISSION_NAME'; payload: string }
+  | { type: 'SET_HOME_POSITION'; payload: { lat: number; lng: number } }
   | { type: 'CREATE_NEW_MISSION' }
   | { type: 'LOAD_MISSION'; payload: Mission }
   | { type: 'SAVE_MISSION' }
@@ -22,6 +23,7 @@ const createNewMission = (): Mission => ({
   id: `mission_${Date.now()}`,
   name: 'New Mission',
   waypoints: [],
+  homePosition: { lat: 34.0522, lng: -118.2437 } // Default to LA for consistency
 });
 
 const initialState: MissionState = {
@@ -73,6 +75,15 @@ const missionReducer = (state: MissionState, action: MissionAction): MissionStat
             currentMission: {
                 ...state.currentMission,
                 name: action.payload
+            }
+        }
+    }
+    case 'SET_HOME_POSITION': {
+        return {
+            ...state,
+            currentMission: {
+                ...state.currentMission,
+                homePosition: action.payload
             }
         }
     }

@@ -1,8 +1,8 @@
-
 import React from 'react';
 import { useMissionState, useMissionDispatch } from '../../hooks/useMission';
 import { Waypoint } from '../../types';
 import { useTelemetry } from '../../hooks/useTelemetry';
+import AltitudeProfileChart from '../AltitudeProfileChart';
 
 const TrashIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
@@ -59,20 +59,63 @@ const MissionEditorPanel: React.FC = () => {
         dispatch({ type: 'SET_MISSION_NAME', payload: e.target.value });
     }
 
+    const handleHomePositionChange = (field: 'lat' | 'lng', value: string) => {
+        const numValue = parseFloat(value);
+        if (!isNaN(numValue)) {
+            dispatch({
+                type: 'SET_HOME_POSITION',
+                payload: {
+                    ...currentMission.homePosition,
+                    lat: currentMission.homePosition?.lat ?? 0,
+                    lng: currentMission.homePosition?.lng ?? 0,
+                    [field]: numValue
+                }
+            });
+        }
+    };
+
     return (
         <div className="space-y-4">
             <h3 className="text-lg font-bold text-slate-100">Mission Details</h3>
-            <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">Mission Name</label>
-                <input 
-                    type="text" 
-                    value={currentMission.name} 
-                    onChange={handleNameChange}
-                    className="w-full bg-base-300 p-2 rounded-md border-transparent focus:border-primary focus:ring-0 text-slate-100"
-                />
+            <div className="space-y-3">
+                <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">Mission Name</label>
+                    <input 
+                        type="text" 
+                        value={currentMission.name} 
+                        onChange={handleNameChange}
+                        className="w-full bg-base-300 p-2 rounded-md border-transparent focus:border-primary focus:ring-0 text-slate-100"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">Home Position</label>
+                    <div className="grid grid-cols-2 gap-2">
+                        <input
+                            type="number"
+                            placeholder="Latitude"
+                            value={currentMission.homePosition?.lat ?? ''}
+                            onChange={e => handleHomePositionChange('lat', e.target.value)}
+                            className="w-full bg-base-300 p-2 rounded-md border-transparent focus:border-primary focus:ring-0 text-slate-100"
+                        />
+                        <input
+                            type="number"
+                            placeholder="Longitude"
+                            value={currentMission.homePosition?.lng ?? ''}
+                            onChange={e => handleHomePositionChange('lng', e.target.value)}
+                            className="w-full bg-base-300 p-2 rounded-md border-transparent focus:border-primary focus:ring-0 text-slate-100"
+                        />
+                    </div>
+                </div>
             </div>
+
+            {currentMission.waypoints.length > 1 && (
+                <div className="pt-2">
+                    <h4 className="font-semibold text-slate-200 mb-2">Altitude Profile</h4>
+                    <AltitudeProfileChart waypoints={currentMission.waypoints} />
+                </div>
+            )}
             
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between pt-2">
                 <h4 className="font-semibold text-slate-200">Waypoints ({currentMission.waypoints.length})</h4>
                 <button
                     onClick={isSimulating ? stopSimulation : startSimulation}
@@ -87,7 +130,7 @@ const MissionEditorPanel: React.FC = () => {
                 </button>
             </div>
 
-            <div className="space-y-3 max-h-[calc(100vh-250px)] overflow-y-auto pr-2">
+            <div className="space-y-3">
                 {currentMission.waypoints.length > 0 ? (
                     currentMission.waypoints.map((wp, index) => (
                         <WaypointEditor key={wp.id} waypoint={wp} index={index} />

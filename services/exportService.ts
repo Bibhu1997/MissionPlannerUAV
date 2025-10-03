@@ -165,17 +165,23 @@ export const exportToPDF = (mission: Mission, weather: WeatherData) => {
     // --- Mission Summary ---
     doc.setFontSize(12);
     doc.text('Mission Summary', 14, 40);
+    
+    const summaryBody = [
+        ['Mission Name', mission.name],
+        ['Number of Waypoints', mission.waypoints.length],
+        ['Total Distance', `${(totalDistance / 1000).toFixed(2)} km`],
+        ['Estimated Flight Time', formatTime(estimatedTime)],
+    ];
+
     doc.autoTable({
         startY: 42,
+        head: [['Mission Detail', 'Value']],
+        body: summaryBody,
         theme: 'grid',
-        head: [['Mission Name', 'Waypoints', 'Total Distance', 'Est. Flight Time']],
-        body: [[
-            mission.name,
-            mission.waypoints.length,
-            `${(totalDistance / 1000).toFixed(2)} km`,
-            formatTime(estimatedTime)
-        ]]
+        headStyles: { fillColor: [30, 41, 59] }, // slate-800
+        columnStyles: { 0: { fontStyle: 'bold' } },
     });
+
 
     // --- Weather Overview ---
     const weatherTableStartY = (doc as any).lastAutoTable.finalY + 10;
