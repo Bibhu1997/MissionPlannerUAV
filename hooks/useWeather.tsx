@@ -21,6 +21,8 @@ const processForecastData = (daily: any[]): ForecastDetail[] => {
         precipitation: Math.round(day.pop * 100),
         weather_icon: day.weather[0].icon,
         weather_main: day.weather[0].main,
+        wind_speed: Math.round(day.wind_speed),
+        wind_deg: day.wind_deg,
     }));
 };
 

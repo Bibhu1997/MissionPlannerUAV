@@ -111,7 +111,8 @@ export const exportToKML = (mission: Mission) => {
       <description><![CDATA[
         <b>Altitude:</b> ${wp.alt}m (${wp.altType})<br/>
         <b>Ground Elevation:</b> ${wp.terrain_alt ? `${wp.terrain_alt.toFixed(1)}m MSL` : 'N/A'}<br/>
-        <b>Absolute Altitude:</b> ${getAbsoluteAltitude(wp).toFixed(1)}m MSL
+        <b>Absolute Altitude:</b> ${getAbsoluteAltitude(wp).toFixed(1)}m MSL<br/>
+        <b>Speed:</b> ${wp.speed} m/s
       ]]></description>
       <styleUrl>#waypoint</styleUrl>
       <Point>

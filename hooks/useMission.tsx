@@ -1,4 +1,5 @@
-import React, { createContext, useReducer, useContext, ReactNode, Dispatch, useEffect } from 'react';
+
+import React, { createContext, useReducer, useContext, ReactNode, Dispatch, useEffect, useMemo } from 'react';
 import { Mission, Waypoint } from '../types';
 import { DEFAULT_ALTITUDE, DEFAULT_SPEED } from '../constants';
 import { useSettings } from './useSettings';
@@ -154,17 +155,28 @@ const MissionProviderInternal: React.FC<{ children: ReactNode }> = ({ children }
   const [state, dispatch] = useReducer(missionReducer, initialState);
   const { googleMapsApiKey } = useSettings();
 
+  const waypointLocations = useMemo(() => {
+    return JSON.stringify(state.currentMission.waypoints.map(wp => ({ lat: wp.lat, lng: wp.lng })));
+  }, [state.currentMission.waypoints]);
+
   useEffect(() => {
     const fetchTerrainData = async () => {
       const { waypoints } = state.currentMission;
-      if (!googleMapsApiKey || waypoints.length === 0) {
-        // Clear terrain data if no waypoints or no key
+      const clearTerrainData = () => {
         const waypointsWithoutTerrain = waypoints.map(({ terrain_alt, ...wp }) => wp);
         dispatch({ type: 'SET_TERRAIN_PROFILE', payload: { waypointsWithTerrain: waypointsWithoutTerrain, terrainProfile: [] } });
+      };
+
+      // No API key or waypoints, so clear any existing terrain data.
+      if (!googleMapsApiKey || waypoints.length === 0) {
+        clearTerrainData();
         return;
       }
-
-      // Use the 'locations' parameter for precise elevation at each waypoint
+      
+      // DESIGN NOTE: Terrain data is fetched for all waypoints, not just those with AGL type.
+      // This is essential for two reasons:
+      // 1. To provide a consistent and accurate terrain profile chart for all missions.
+      // 2. To allow the user to seamlessly toggle between MSL and AGL without triggering new API calls.
       const locations = waypoints.map(wp => `${wp.lat},${wp.lng}`).join('|');
       const url = `https://maps.googleapis.com/maps/api/elevation/json?locations=${locations}&key=${googleMapsApiKey}`;
 
@@ -180,18 +192,25 @@ const MissionProviderInternal: React.FC<{ children: ReactNode }> = ({ children }
           const terrainProfile = data.results.map((result: any) => ({ elevation: result.elevation }));
           dispatch({ type: 'SET_TERRAIN_PROFILE', payload: { waypointsWithTerrain, terrainProfile } });
         } else {
+          // If the API returns an error status, clear stale data to prevent incorrect calculations.
           console.error('Failed to fetch elevation data:', data.status, data.error_message);
-          // If fetch fails, keep existing waypoints but clear profile to avoid stale chart data
-          dispatch({ type: 'SET_TERRAIN_PROFILE', payload: { waypointsWithTerrain: waypoints, terrainProfile: [] } });
+          clearTerrainData();
         }
       } catch (error) {
+        // If the fetch itself fails (e.g., network error), clear stale data.
         console.error('Error fetching elevation data:', error);
+        clearTerrainData();
       }
     };
 
-    const debounceTimer = setTimeout(fetchTerrainData, 500); // Debounce API calls
+    const debounceTimer = setTimeout(fetchTerrainData, 500);
     return () => clearTimeout(debounceTimer);
-  }, [state.currentMission.waypoints, googleMapsApiKey, dispatch]);
+    
+    // This effect is correctly optimized. It will only re-run when the geographic
+    // locations of waypoints change (via `waypointLocations` memo) or when the API key
+    // is updated. Changes to non-location properties like speed or altitude will not
+    // trigger a new, redundant API call for terrain data.
+  }, [waypointLocations, googleMapsApiKey, dispatch]);
 
 
   return (

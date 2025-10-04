@@ -1,4 +1,3 @@
-
 export interface Waypoint {
   id: string;
   lat: number;
@@ -36,6 +35,8 @@ export interface ForecastDetail {
   precipitation: number; // Probability
   weather_icon: string;
   weather_main: string;
+  wind_speed: number;
+  wind_deg: number;
 }
 
 export interface Alert {

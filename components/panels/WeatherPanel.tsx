@@ -13,6 +13,15 @@ const AlertIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-accent"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
 );
 
+const WindIcon: React.FC<{ rotation: number }> = ({ rotation }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" 
+        className="h-6 w-6 text-sky-300 transition-transform duration-500" 
+        style={{ transform: `rotate(${rotation}deg)` }}>
+        <path d="M12 18.5v-13"/>
+        <path d="m8 9 4-4 4 4"/>
+    </svg>
+);
+
 const WeatherPanel: React.FC = () => {
     const { openWeatherApiKey } = useSettings();
     const { weather, isLoading, error } = useWeather();
@@ -48,11 +57,24 @@ const WeatherPanel: React.FC = () => {
 
             <WeatherCard title="METAR">
                 <code className="font-mono bg-base-300/50 p-2 rounded block text-xs">{weather.metar}</code>
-            {/* FIX: Corrected typo in closing tag from WebatherCard to WeatherCard. */}
             </WeatherCard>
 
             <WeatherCard title="TAF">
                 <code className="font-mono bg-base-300/50 p-2 rounded block text-xs">{weather.taf}</code>
+            </WeatherCard>
+
+            <WeatherCard title="Wind Forecast">
+                 {isLoading ? <p>Loading forecast...</p> : (
+                    <div className="grid grid-cols-5 gap-2 text-center">
+                        {weather.forecast.map((f, i) => (
+                            <div key={i} className="bg-base-300/50 p-2 rounded-md flex flex-col items-center justify-between">
+                                <div className="font-bold text-slate-200">{f.day}</div>
+                                <WindIcon rotation={f.wind_deg} />
+                                <div className="text-sm font-semibold text-sky-300">{f.wind_speed} mph</div>
+                            </div>
+                        ))}
+                    </div>
+                 )}
             </WeatherCard>
 
             <WeatherCard title="5-Day Forecast">

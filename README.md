@@ -26,19 +26,20 @@
   - **Altitude Safety Alerts**: During simulation, a prominent banner provides critical alerts if the drone breaches predefined altitude safety limits.
 - **Live Weather Integration**:
   - Fetches and displays current METAR/TAF data.
-  - Provides a 5-day forecast with temperature, humidity, and precipitation.
+  - Provides a 5-day forecast with temperature, humidity, precipitation, and **wind speed/direction**.
   - Displays critical government-issued weather alerts (e.g., high wind warnings).
 - **Mission Management**:
   - Save and load multiple missions directly in the browser.
   - Export mission plans to common formats: **GeoJSON, KML, CSV, a printable PDF Mission Brief**, and a **terrain-aware MAVLink plan**.
 - **Polished UI/UX**:
+  - **Dual Unit System**: Toggle the entire application's display between Imperial (feet) and Metric (meters).
   - A clean, modern, dark-themed interface.
   - Responsive design for both desktop and mobile use.
   - Custom map controls, tooltips, and intuitive editors for a seamless user experience.
 
 ---
 
-## Getting Started
+## Getting Started & Troubleshooting
 
 ### Prerequisites
 
@@ -54,17 +55,24 @@ You need API keys from two services to enable all features. Both services offer 
 2.  **Get API Keys:**
     *   **Google Maps API Key**:
         1.  Go to the [Google Cloud Console](https://console.cloud.google.com/).
-        2.  Create a new project and **enable billing** (required by Google, but you'll stay within the free tier).
-        3.  Enable the **Maps JavaScript API**, the **Places API**, and the **Elevation API**.
+        2.  Create a new project and **enable billing** (this is required by Google, but you will almost certainly stay within the generous free tier).
+        3.  Enable these three APIs: **Maps JavaScript API**, **Places API**, and **Elevation API**.
         4.  Go to "Credentials", create a new API key, and copy it.
-        5.  **Important**: Restrict your key to your website's domain for security.
+        5.  **Important**: For security, restrict your key to your website's domain (or `localhost` for testing).
     *   **OpenWeather API Key**:
         1.  Go to [OpenWeatherMap](https://openweathermap.org/api) and create a free account.
-        2.  Subscribe to the **"One Call by Call"** API plan (it's free for 1,000 calls/day).
-        3.  Navigate to your API keys section and copy your key.
+        2.  Navigate to the "API keys" tab in your user dashboard.
+        3.  **Crucially, you must subscribe to the "One Call by Call" plan.** The application uses the One Call 3.0 API, which requires this specific subscription. Go to the [API pricing page](https://openweathermap.org/price), find this plan, and click "Get API key". This plan is free for 1,000 calls/day and does not require payment details. A key from the default "Free" plan will *not* work and will cause an authentication error.
+        4.  Copy your new API key.
 
-3.  **Run the Application:**
-    *   Open the `index.html` file in your web browser.
+3.  **Run the Application (VERY IMPORTANT):**
+    *   **Do not open the `index.html` file directly in your browser.** This will cause `NetworkError` or CORS errors when the app tries to fetch API data, as browsers block such requests from `file://` URLs for security.
+    *   You must serve the files using a local web server. The easiest way is with `npx`:
+    *   Open your terminal, navigate to the project's root folder, and run the following command:
+        ```bash
+        npx serve
+        ```
+    *   Then, open the URL provided by the server (usually `http://localhost:3000`) in your browser.
 
 4.  **Configure API Keys in the App:**
     1.  On the right-hand sidebar, click the **"Settings"** tab (gear icon).
@@ -82,7 +90,7 @@ You need API keys from two services to enable all features. Both services offer 
     *   In the **"Mission Editor"** tab, give your mission a name and set a home position.
     *   Click on the map to add waypoints.
     *   Click on a waypoint in the list to expand its details. Use the sliders and input fields to adjust its altitude, speed, and precise coordinates.
-    *   Use the **AGL/MSL toggle** to decide if the altitude is relative to the ground or a fixed sea level.
+    -   Use the **AGL/MSL toggle** to decide if the altitude is relative to the ground or a fixed sea level.
     *   Observe the **Terrain Profile Chart** to see your flight path in relation to the ground.
     *   To define a safe flight zone, click "Draw Boundary" and draw a polygon on the map.
 3.  **Validate and Simulate**:
@@ -92,4 +100,4 @@ You need API keys from two services to enable all features. Both services offer 
     *   Switch to the **"Weather"** tab to review the current conditions, forecast, and any critical alerts for the area.
 5.  **Save and Export**:
     *   Go to the **"Mission Library"** tab to save your current mission.
-    *   Use the export buttons to generate mission files in your desired format, including a terrain-aware MAVLink plan file or a comprehensive PDF brief.
+    -   Use the export buttons to generate mission files in your desired format. All exports (MAVLink, KML, PDF, etc.) are **terrain-aware** and include the fetched ground elevation data.
